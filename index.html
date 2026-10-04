@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SEPEDAGUYS - Rental Sepeda & Admin Dashboard</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              teal: '#257180',
+              'teal-dark': '#1B525D',
+              'teal-light': '#388E9E',
+              rust: '#C15C3D',
+              'rust-hover': '#A84C30',
+              gold: '#E8C897',
+              cream: '#F9F5EF',
+              dark: '#111827',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="bg-brand-cream min-h-screen text-slate-800 flex flex-col md:flex-row">
+
+  <!-- SIDEBAR NAVIGASI SAMPING KIRI -->
+  <aside class="w-full md:w-64 bg-brand-teal-dark text-white flex flex-col justify-between shrink-0 shadow-lg min-h-screen">
+    <div>
+      <!-- BRANDING SIDEBAR -->
+      <div class="p-6 border-b border-brand-teal/40 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-brand-rust flex items-center justify-center text-xl font-black text-brand-gold shadow">
+          🚲
+        </div>
+        <div>
+          <h1 class="font-black text-lg tracking-wider text-brand-gold">SEPEDAGUYS</h1>
+          <p class="text-[10px] text-slate-300 uppercase tracking-widest font-semibold">Kutai Kartanegara</p>
+        </div>
+      </div>
+
+      <!-- NAVIGASI MENU -->
+      <nav class="p-4 space-y-2">
+        <button onclick="switchTab('pesan')" id="side-btn-pesan" class="w-full text-left px-4 py-3 rounded-xl font-bold text-sm flex items-center justify-between transition bg-brand-rust text-white shadow-md">
+          <span class="flex items-center gap-3">
+            <span>🛒</span> Form Pemesanan
+          </span>
+        </button>
+
+        <button onclick="switchTab('admin')" id="side-btn-admin" class="w-full text-left px-4 py-3 rounded-xl font-bold text-sm flex items-center justify-between transition text-slate-300 hover:bg-brand-teal/30 hover:text-white">
+          <span class="flex items-center gap-3">
+            <span>🔐</span> Admin Panel
+          </span>
+          <span id="badgeAdminStatus" class="text-[10px] bg-slate-700 text-slate-300 font-bold px-2 py-0.5 rounded-full">Terkunci</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- FOOTER SIDEBAR / LOGOUT -->
+    <div class="p-4 border-t border-brand-teal/40">
+      <div id="sidebarUserBox" class="text-xs text-slate-300 flex items-center justify-between">
+        <span>Akses: <strong class="text-white" id="userRoleText">Pengunjung</strong></span>
+        <button id="btnLogout" onclick="logoutAdmin()" class="hidden text-xs bg-rose-600/80 hover:bg-rose-600 text-white font-bold px-2.5 py-1 rounded-lg transition">
+          Logout
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- KONTEN UTAMA -->
+  <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+
+    <!-- TAB 1: FORM PEMESANAN (PUBLIK) -->
+    <div id="tab-pesan" class="max-w-4xl mx-auto space-y-8">
+      
+      <!-- HEADER -->
+      <div class="text-center space-y-2">
+        <div class="inline-block bg-brand-rust text-brand-gold text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-sm mb-1">
+          Rental Sepeda Kutai Kartanegara
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-brand-teal-dark tracking-tight">🚲 Rental Sepeda Online</h1>
+        <p class="text-slate-600 text-sm sm:text-base">Sewa harian atau per jam dengan status ketersediaan realtime</p>
+      </div>
+
+      <!-- SECTION STATUS KETERSEDIAAN SEPEDA -->
+      <div class="bg-white rounded-2xl shadow-md p-6 border border-brand-teal/20 space-y-4">
+        
+        <!-- CONTROL BAR TANGGAL CEK STOK -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <h2 class="text-lg font-bold text-brand-teal-dark flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              Status Ketersediaan Stok
+            </h2>
+            <p class="text-xs text-slate-500">Pilih tanggal untuk melihat ketersediaan stok hari ini atau mendatang</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-bold text-slate-700 whitespace-nowrap">Tanggal Cek:</label>
+            <input type="date" id="tglCekStok" onchange="renderStatusCards()" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-teal outline-none text-slate-800 bg-brand-cream/40">
+            <button onclick="loadStatusSepeda()" class="text-xs font-semibold text-brand-rust hover:text-brand-rust-hover transition px-2 py-1 bg-brand-rust/10 rounded-lg">
+              🔄 Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- GRID CARDS STOK -->
+        <div id="containerStatus" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="col-span-full text-center py-6 text-slate-400 text-sm">Memuat status sepeda...</div>
+        </div>
+      </div>
+
+      <!-- CARD FORM PEMESANAN -->
+      <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-brand-teal/20 max-w-xl mx-auto">
+        <div class="bg-brand-teal px-6 py-6 text-white border-b-4 border-brand-rust">
+          <h2 class="text-xl font-bold text-white">Form Pemesanan</h2>
+          <p class="text-brand-gold/90 text-xs mt-0.5">Isi data pemesanan di bawah ini</p>
+        </div>
+
+        <form id="bookingForm" class="p-6 space-y-5">
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Nama Lengkap</label>
+            <input type="text" id="nama" required placeholder="Contoh: Budi Santoso" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-teal outline-none text-slate-800 text-sm">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Nomor WhatsApp</label>
+            <input type="tel" id="whatsapp" required placeholder="Contoh: 08123456789" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-teal outline-none text-slate-800 text-sm">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Tipe Sewa</label>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="flex items-center justify-center gap-2 p-3 rounded-lg border border-slate-300 cursor-pointer hover:bg-brand-cream/50 transition [&:has(:checked)]:border-brand-teal [&:has(:checked)]:bg-brand-teal/10 [&:has(:checked)]:text-brand-teal-dark font-semibold">
+                <input type="radio" name="tipeSewa" value="hari" checked onchange="toggleTipeSewa()" class="text-brand-teal focus:ring-brand-teal">
+                <span class="text-sm">Per Hari</span>
+              </label>
+              <label class="flex items-center justify-center gap-2 p-3 rounded-lg border border-slate-300 cursor-pointer hover:bg-brand-cream/50 transition [&:has(:checked)]:border-brand-teal [&:has(:checked)]:bg-brand-teal/10 [&:has(:checked)]:text-brand-teal-dark font-semibold">
+                <input type="radio" name="tipeSewa" value="jam" onchange="toggleTipeSewa()" class="text-brand-teal focus:ring-brand-teal">
+                <span class="text-sm">Per Jam</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Pilih Sepeda</label>
+            <select id="sepeda" required onchange="hitungTotal()" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-teal outline-none text-slate-800 text-sm bg-white">
+              <option value="" disabled selected>-- Pilih Jenis Sepeda --</option>
+            </select>
+          </div>
+
+          <div id="gridWaktu" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Jumlah Unit</label>
+            <input type="number" id="jumlahUnit" min="1" value="1" required onchange="hitungTotal()" onkeyup="hitungTotal()" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-teal outline-none text-slate-800 text-sm">
+          </div>
+
+          <div class="p-4 bg-brand-cream border border-brand-gold/60 rounded-xl flex items-center justify-between shadow-inner">
+            <div>
+              <span class="text-xs font-semibold text-slate-600 uppercase tracking-wider block">Estimasi Biaya</span>
+              <span id="labelTotal" class="text-xl font-bold text-brand-rust">Rp 0</span>
+            </div>
+            <span id="labelDurasi" class="text-xs font-medium text-brand-teal-dark bg-brand-teal/10 px-3 py-1 rounded-full text-right font-semibold">0 jam/hari</span>
+          </div>
+
+          <div class="border-t border-slate-200 pt-5 space-y-4">
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Metode Pembayaran</label>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="flex items-center justify-center gap-2 p-3 rounded-lg border border-slate-300 cursor-pointer hover:bg-brand-cream/50 transition [&:has(:checked)]:border-brand-teal [&:has(:checked)]:bg-brand-teal/10 [&:has(:checked)]:text-brand-teal-dark font-semibold">
+                <input type="radio" name="metodeBayar" value="Cash" checked onchange="togglePembayaran()" class="text-brand-teal focus:ring-brand-teal">
+                <span class="text-sm">Cash / Tunai</span>
+              </label>
+              <label class="flex items-center justify-center gap-2 p-3 rounded-lg border border-slate-300 cursor-pointer hover:bg-brand-cream/50 transition [&:has(:checked)]:border-brand-teal [&:has(:checked)]:bg-brand-teal/10 [&:has(:checked)]:text-brand-teal-dark font-semibold">
+                <input type="radio" name="metodeBayar" value="Transfer Bank" onchange="togglePembayaran()" class="text-brand-teal focus:ring-brand-teal">
+                <span class="text-sm">Transfer Bank</span>
+              </label>
+            </div>
+
+            <div id="boxDetailPembayaran" class="p-4 bg-brand-teal/5 border border-brand-teal/20 rounded-xl text-xs text-slate-700 space-y-2"></div>
+
+            <div id="boxBuktiBayar" class="hidden">
+              <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Upload Bukti Transfer</label>
+              <input type="file" id="buktiBayar" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-teal/10 file:text-brand-teal-dark hover:file:bg-brand-teal/20 cursor-pointer border border-slate-300 rounded-lg p-1">
+              <p class="text-[11px] text-slate-500 mt-1">*Opsional. Anda juga bisa melampirkan foto bukti transfer secara langsung di WhatsApp.</p>
+            </div>
+          </div>
+
+          <button type="submit" id="btnSubmit" class="w-full py-3.5 px-4 bg-brand-rust hover:bg-brand-rust-hover text-white font-bold rounded-xl shadow-lg shadow-brand-rust/30 transition duration-200 flex items-center justify-center space-x-2">
+            <span id="btnText">Pesan sekarang</span>
+            <svg id="btnSpinner" class="hidden animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </button>
+        </form>
+
+        <div id="alertBox" class="hidden mx-6 mb-6 p-4 rounded-xl text-sm font-medium"></div>
+      </div>
+    </div>
+
+    <!-- TAB 2: DASHBOARD ADMIN -->
+    <div id="tab-admin" class="hidden max-w-7xl mx-auto space-y-6">
+      <div id="adminLoginBox" class="max-w-md mx-auto my-12 bg-white rounded-2xl shadow-xl border border-brand-teal/20 p-6 space-y-4">
+        <div class="text-center space-y-1">
+          <div class="text-3xl">🔐</div>
+          <h2 class="text-xl font-extrabold text-brand-teal-dark">Login Admin SEPEDAGUYS</h2>
+          <p class="text-xs text-slate-500">Masukkan kata sandi admin untuk mengakses data transaksi</p>
+        </div>
+        <form onsubmit="autentikasiAdmin(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Kata Sandi Admin</label>
+            <input type="password" id="inputPassAdmin" placeholder="Masukkan password..." required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-teal outline-none text-slate-800 text-sm">
+          </div>
+          <button type="submit" class="w-full py-2.5 bg-brand-teal hover:bg-brand-teal-dark text-white font-bold rounded-lg transition text-sm">
+            Masuk Panel Admin
+          </button>
+        </form>
+        <p id="errorLogin" class="hidden text-xs text-rose-600 font-semibold text-center mt-2"></p>
+      </div>
+
+      <div id="adminMainContent" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-brand-teal/20">
+          <div>
+            <div class="inline-block bg-brand-rust text-brand-gold text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-widest mb-1">
+              Area Admin
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-brand-teal-dark">🚲 Dashboard Admin SEPEDAGUYS</h1>
+            <p class="text-slate-500 text-xs sm:text-sm">Kelola transaksi, jadwal sewa, dan statistik pendapatan secara realtime.</p>
+          </div>
+          <button onclick="loadAdminData()" class="self-start sm:self-auto bg-brand-teal hover:bg-brand-teal-dark text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2">
+            <span>🔄</span> Refresh Data
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-brand-teal/15 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Pendapatan Hari Ini</span>
+              <span class="p-2 bg-emerald-50 text-emerald-600 rounded-lg text-lg">💰</span>
+            </div>
+            <div class="text-2xl font-black text-emerald-600" id="statPendapatanHariIni">Rp 0</div>
+            <div class="text-[11px] text-slate-400" id="subStatHariIni">0 Transaksi Selesai/Aktif</div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-brand-teal/15 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Pendapatan Minggu Ini</span>
+              <span class="p-2 bg-brand-teal/10 text-brand-teal-dark rounded-lg text-lg">📈</span>
+            </div>
+            <div class="text-2xl font-black text-brand-teal-dark" id="statPendapatanMingguIni">Rp 0</div>
+            <div class="text-[11px] text-slate-400">7 Hari Terakhir</div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-brand-teal/15 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Pendapatan Bulan Ini</span>
+              <span class="p-2 bg-brand-rust/10 text-brand-rust rounded-lg text-lg">📊</span>
+            </div>
+            <div class="text-2xl font-black text-brand-rust" id="statPendapatanBulanIni">Rp 0</div>
+            <div class="text-[11px] text-slate-400">Bulan Berjalan</div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-brand-teal/15 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Unit Disewa Hari Ini</span>
+              <span class="p-2 bg-brand-gold/20 text-brand-teal-dark rounded-lg text-lg">🚲</span>
+            </div>
+            <div class="text-2xl font-black text-slate-800" id="statTersewaHariIni">0 Unit</div>
+            <div class="text-[11px] text-slate-400" id="statTotalTransaksi">0 Total Pemesanan Masuk</div>
+          </div>
+        </div>
+
+        <div class="border-b border-slate-200">
+          <nav class="flex space-x-4">
+            <button onclick="switchAdminSubTab('dashboard')" id="sub-btn-dashboard" class="py-3 px-4 text-xs sm:text-sm font-bold border-b-2 border-brand-rust text-brand-rust transition">
+              📊 Penyewa Aktif
+            </button>
+            <button onclick="switchAdminSubTab('jadwal')" id="sub-btn-jadwal" class="py-3 px-4 text-xs sm:text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-brand-teal transition">
+              📋 Kelola Status Peminjaman
+            </button>
+            <button onclick="switchAdminSubTab('history')" id="sub-btn-history" class="py-3 px-4 text-xs sm:text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-brand-teal transition">
+              📜 History Sewa
+            </button>
+          </nav>
+        </div>
+
+        <div id="admin-sub-dashboard" class="space-y-4">
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-brand-teal/20 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 class="text-base font-bold text-brand-teal-dark flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                Penyewa Sepeda Aktif Hari Ini
+              </h2>
+              <span class="text-xs bg-brand-cream text-brand-teal-dark font-semibold px-3 py-1 rounded-full border border-brand-gold/50" id="countPenyewaAktif">0 Orang</span>
+            </div>
+            <div id="containerPenyewaAktif" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+          </div>
+        </div>
+
+        <div id="admin-sub-jadwal" class="hidden">
+          <div class="bg-white rounded-2xl shadow-sm border border-brand-teal/20 overflow-hidden">
+            <div class="p-6 border-b border-slate-100">
+              <h2 class="text-base font-bold text-brand-teal-dark">Manajemen Transaksi Sewa</h2>
+              <p class="text-xs text-slate-500 mt-0.5">Ubah status transaksi secara langsung untuk memperbarui stok sepeda</p>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs sm:text-sm">
+                <thead class="bg-brand-cream text-brand-teal-dark font-bold border-b border-slate-200">
+                  <tr>
+                    <th class="p-3.5">Pemesan</th>
+                    <th class="p-3.5">Sepeda</th>
+                    <th class="p-3.5">Jumlah</th>
+                    <th class="p-3.5">Mulai</th>
+                    <th class="p-3.5">Selesai</th>
+                    <th class="p-3.5">Tipe & Durasi</th>
+                    <th class="p-3.5">WhatsApp</th>
+                    <th class="p-3.5">Total Biaya</th>
+                    <th class="p-3.5">Status</th>
+                    <th class="p-3.5">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="tableJadwalBody" class="divide-y divide-slate-100">
+                  <tr><td colspan="10" class="text-center py-8 text-slate-400">Memuat data...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="admin-sub-history" class="hidden">
+          <div class="bg-white rounded-2xl shadow-sm border border-brand-teal/20 overflow-hidden">
+            <div class="p-6 border-b border-slate-100">
+              <h2 class="text-base font-bold text-brand-teal-dark">Riwayat Sewa Sepeda</h2>
+              <p class="text-xs text-slate-500 mt-0.5">Daftar seluruh transaksi yang telah Selesai atau Dibatalkan</p>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs sm:text-sm">
+                <thead class="bg-brand-cream text-brand-teal-dark font-bold border-b border-slate-200">
+                  <tr>
+                    <th class="p-3.5">Pemesan</th>
+                    <th class="p-3.5">Sepeda</th>
+                    <th class="p-3.5">Jumlah</th>
+                    <th class="p-3.5">Periode Sewa</th>
+                    <th class="p-3.5">Tipe</th>
+                    <th class="p-3.5">WhatsApp</th>
+                    <th class="p-3.5">Total Biaya</th>
+                    <th class="p-3.5">Status Akhir</th>
+                  </tr>
+                </thead>
+                <tbody id="tableHistoryBody" class="divide-y divide-slate-100">
+                  <tr><td colspan="8" class="text-center py-8 text-slate-400">Memuat riwayat...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxxSfRfv-mDl4FoFJrNqy2UCj5LJ9dWwWCVqute-sFyth2ot9FxQyIs9zq4a6kOsR3JGg/exec";
+    const NO_ADMIN_WA = "6289686238783";
+    const ADMIN_PASSWORD = "admin123";
+    let isAdminLoggedIn = false;
+    
+    let globalSepedaList = [];
+    let globalPemesananList = [];
+
+    document.addEventListener("DOMContentLoaded", function() {
+      // Set default input tanggal ke hari ini
+      const todayISO = new Date().toISOString().split('T')[0];
+      document.getElementById('tglCekStok').value = todayISO;
+
+      toggleTipeSewa();
+      togglePembayaran();
+      loadStatusSepeda();
+    });
+
+    function switchTab(tabName) {
+      document.getElementById('tab-pesan').classList.add('hidden');
+      document.getElementById('tab-admin').classList.add('hidden');
+
+      const sidePesan = document.getElementById('side-btn-pesan');
+      const sideAdmin = document.getElementById('side-btn-admin');
+
+      sidePesan.className = "w-full text-left px-4 py-3 rounded-xl font-bold text-sm flex items-center justify-between transition text-slate-300 hover:bg-brand-teal/30 hover:text-white";
+      sideAdmin.className = "w-full text-left px-4 py-3 rounded-xl font-bold text-sm flex items-center justify-between transition text-slate-300 hover:bg-brand-teal/30 hover:text-white";
+
+      if (tabName === 'pesan') {
+        document.getElementById('tab-pesan').classList.remove('hidden');
+        sidePesan.className = "w-full text-left px-4 py-3 rounded-xl font-bold text-sm flex items-center justify-between transition bg-brand-rust text-white shadow-md";
+      } else if (tabName === 'admin') {
+        document.getElementById('tab-admin').classList.remove('hidden');
+        sideAdmin.className = "w-full text-left px-4 py-3 rounded-xl font-bold text-sm flex items-center justify-between transition bg-brand-rust text-white shadow-md";
+
+        if (isAdminLoggedIn) {
+          loadAdminData();
+        }
+      }
+    }
+
+    function autentikasiAdmin(e) {
+      e.preventDefault();
+      const inputPass = document.getElementById('inputPassAdmin').value;
+      const errorMsg = document.getElementById('errorLogin');
+
+      if (inputPass === ADMIN_PASSWORD) {
+        isAdminLoggedIn = true;
+        document.getElementById('adminLoginBox').classList.add('hidden');
+        document.getElementById('adminMainContent').classList.remove('hidden');
+        document.getElementById('userRoleText').innerText = "Administrator";
+        document.getElementById('badgeAdminStatus').innerText = "Terbuka";
+        document.getElementById('badgeAdminStatus').className = "text-[10px] bg-emerald-500 text-white font-bold px-2 py-0.5 rounded-full";
+        document.getElementById('btnLogout').classList.remove('hidden');
+
+        errorMsg.classList.add('hidden');
+        loadAdminData();
+      } else {
+        errorMsg.innerText = "Kata sandi salah! Silakan coba lagi.";
+        errorMsg.classList.remove('hidden');
+      }
+    }
+
+    function logoutAdmin() {
+      isAdminLoggedIn = false;
+      document.getElementById('adminMainContent').classList.add('hidden');
+      document.getElementById('adminLoginBox').classList.remove('hidden');
+      document.getElementById('inputPassAdmin').value = '';
+      document.getElementById('userRoleText').innerText = "Pengunjung";
+      document.getElementById('badgeAdminStatus').innerText = "Terkunci";
+      document.getElementById('badgeAdminStatus').className = "text-[10px] bg-slate-700 text-slate-300 font-bold px-2 py-0.5 rounded-full";
+      document.getElementById('btnLogout').classList.add('hidden');
+      switchTab('pesan');
+    }
+
+    function switchAdminSubTab(subTabName) {
+      ['dashboard', 'jadwal', 'history'].forEach(t => {
+        document.getElementById(`admin-sub-${t}`).classList.add('hidden');
+        const btn = document.getElementById(`sub-btn-${t}`);
+        btn.classList.remove('border-brand-rust', 'text-brand-rust');
+        btn.classList.add('border-transparent', 'text-slate-500');
+      });
+
+      document.getElementById(`admin-sub-${subTabName}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`sub-btn-${subTabName}`);
+      activeBtn.classList.remove('border-transparent', 'text-slate-500');
+      activeBtn.classList.add('border-brand-rust', 'text-brand-rust');
+    }
+
+    // FETCH DATA SEPEDA & PEMESANAN DARI APPS SCRIPT
+    function loadStatusSepeda() {
+      const container = document.getElementById('containerStatus');
+      container.innerHTML = `<div class="col-span-full text-center py-4 text-slate-400 text-sm">Memuat status...</div>`;
+
+      // Mengambil data stok sepeda
+      fetch(SCRIPT_URL)
+        .then(res => res.json())
+        .then(sepedaData => {
+          globalSepedaList = sepedaData;
+          
+          // Mengambil data pemesanan untuk menghitung reservasi tanggal tertentu
+          return fetch(`${SCRIPT_URL}?action=adminData`);
+        })
+        .then(res => res.json())
+        .then(pemesananData => {
+          globalPemesananList = pemesananData;
+          renderStatusCards();
+          updateDropdownSepeda();
+        })
+        .catch(err => {
+          container.innerHTML = `<div class="col-span-full text-center py-4 text-rose-500 text-sm">Gagal memuat status sepeda. Pastikan URL Web App sudah benar.</div>`;
+        });
+    }
+
+    // RENDER KARTU STOK DENGAN PERHITUNGAN TANGGAL DINAMIS
+    function renderStatusCards() {
+      const container = document.getElementById('containerStatus');
+      const tglTargetVal = document.getElementById('tglCekStok').value;
+      if (!tglTargetVal || globalSepedaList.length === 0) return;
+
+      container.innerHTML = '';
+      const tglTarget = new Date(tglTargetVal + "T12:00:00");
+
+      globalSepedaList.forEach(item => {
+        // Hitung berapa unit sepeda tipe ini yang terpakai pada tanggal yang dipilih
+        let terpakaiPadaTanggal = 0;
+
+        globalPemesananList.forEach(p => {
+          if (p.sepeda === item.nama && p.status === 'Sedang Disewa') {
+            const tglMulai = new Date(p.tglMulai);
+            const tglSelesai = new Date(p.tglSelesai);
+
+            // Set batas waktu tanggal tanpa jam untuk perbandingan presisi
+            const startDay = new Date(tglMulai.getFullYear(), tglMulai.getMonth(), tglMulai.getDate());
+            const endDay = new Date(tglSelesai.getFullYear(), tglSelesai.getMonth(), tglSelesai.getDate());
+            const targetDay = new Date(tglTarget.getFullYear(), tglTarget.getMonth(), tglTarget.getDate());
+
+            if (targetDay >= startDay && targetDay <= endDay) {
+              terpakaiPadaTanggal += (Number(p.jumlah) || 1);
+            }
+          }
+        });
+
+        const sisaStokTanggal = Math.max(0, item.totalStok - terpakaiPadaTanggal);
+        const isTersedia = sisaStokTanggal > 0;
+
+        const card = document.createElement('div');
+        card.className = `p-4 rounded-xl border ${isTersedia ? 'border-brand-teal/20 bg-white' : 'border-rose-200 bg-rose-50/30'} flex flex-col justify-between space-y-3 shadow-sm`;
+
+        // Format tanggal Indonesia sederhana
+        const dateParts = tglTargetVal.split('-');
+        const tglFormatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+
+        card.innerHTML = `
+          <div>
+            <h3 class="font-bold text-brand-teal-dark text-sm">${item.nama}</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Rp ${item.hargaHari.toLocaleString('id-ID')}/hari | Rp ${item.hargaJam.toLocaleString('id-ID')}/jam</p>
+          </div>
+          <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+            <span class="font-semibold text-slate-600">Stok (${tglFormatted}):</span>
+            <div class="flex items-center gap-1.5">
+              <span class="px-2.5 py-0.5 rounded-full font-bold ${isTersedia ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                ${sisaStokTanggal} Unit
+              </span>
+              <span class="text-slate-400">/ ${item.totalStok}</span>
+            </div>
+          </div>
+          <div class="text-[11px] text-slate-400">
+            Dipesan tgl ini: <strong class="text-slate-600">${terpakaiPadaTanggal} unit</strong>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function updateDropdownSepeda() {
+      const select = document.getElementById('sepeda');
+      select.innerHTML = '<option value="" disabled selected>-- Pilih Jenis Sepeda --</option>';
+      globalSepedaList.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.nama;
+        option.setAttribute('data-harga-hari', item.hargaHari);
+        option.setAttribute('data-harga-jam', item.hargaJam);
+        option.textContent = `${item.nama} (Total Stok: ${item.totalStok} unit)`;
+        select.appendChild(option);
+      });
+    }
+
+    function toggleTipeSewa() {
+      const tipeSewa = document.querySelector('input[name="tipeSewa"]:checked').value;
+      const gridWaktu = document.getElementById('gridWaktu');
+
+      if (tipeSewa === 'hari') {
+        gridWaktu.className = "grid grid-cols-1 sm:grid-cols-2 gap-4";
+        gridWaktu.innerHTML = `
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Tanggal Mulai</label>
+            <input type="date" id="tglMulai" required onchange="hitungTotal()" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-teal outline-none text-slate-800 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Tanggal Selesai</label>
+            <input type="date" id="tglSelesai" required onchange="hitungTotal()" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-teal outline-none text-slate-800 text-sm">
+          </div>
+        `;
+      } else {
+        gridWaktu.className = "grid grid-cols-1 sm:grid-cols-3 gap-3";
+        gridWaktu.innerHTML = `
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Tanggal Sewa</label>
+            <input type="date" id="tglSewaJam" required onchange="hitungTotal()" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-teal outline-none text-slate-800 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Jam Mulai</label>
+            <input type="time" id="jamMulai" required onchange="hitungTotal()" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-teal outline-none text-slate-800 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Durasi (Jam)</label>
+            <input type="number" id="durasiJam" min="1" value="1" required onchange="hitungTotal()" onkeyup="hitungTotal()" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-teal outline-none text-slate-800 text-sm">
+          </div>
+        `;
+      }
+      hitungTotal();
+    }
+
+    function togglePembayaran() {
+      const metode = document.querySelector('input[name="metodeBayar"]:checked').value;
+      const detailBox = document.getElementById('boxDetailPembayaran');
+      const boxBuktiBayar = document.getElementById('boxBuktiBayar');
+
+      if (metode === 'Cash') {
+        detailBox.innerHTML = `
+          <p class="font-bold text-brand-teal-dark">Pembayaran Tunai (Cash):</p>
+          <p class="text-slate-600">Pembayaran dilakukan langsung di lokasi saat serah terima unit sepeda SEPEDAGUYS.</p>
+        `;
+        boxBuktiBayar.classList.add('hidden');
+      } else {
+        detailBox.innerHTML = `
+          <p class="font-bold text-brand-teal-dark">Instruksi Transfer Bank:</p>
+          <div class="bg-white p-3 rounded-lg border border-brand-teal/20 space-y-1">
+            <p><span class="font-semibold text-slate-600">Bank:</span> BCA / Mandiri</p>
+            <p><span class="font-semibold text-slate-600">No. Rekening:</span> <span class="font-mono font-bold text-brand-teal-dark">123-456-7890</span></p>
+            <p><span class="font-semibold text-slate-600">Atas Nama:</span> SEPEDAGUYS</p>
+          </div>
+          <p class="text-[11px] text-slate-500">Transfer sesuai total estimasi biaya, lalu kirimkan bukti transfer lewat form ini atau via WhatsApp.</p>
+        `;
+        boxBuktiBayar.classList.remove('hidden');
+      }
+    }
+
+    function hitungTotal() {
+      const selectSepeda = document.getElementById('sepeda');
+      const selectedOption = selectSepeda.options[selectSepeda.selectedIndex];
+      const tipeSewa = document.querySelector('input[name="tipeSewa"]:checked').value;
+
+      if (!selectedOption || selectedOption.disabled) {
+        document.getElementById('labelTotal').innerText = "Rp 0";
+        document.getElementById('labelDurasi').innerText = "0 " + tipeSewa;
+        return;
+      }
+
+      const hargaHari = parseFloat(selectedOption.getAttribute('data-harga-hari')) || 0;
+      const hargaJam = parseFloat(selectedOption.getAttribute('data-harga-jam')) || 0;
+      const jumlahUnit = parseInt(document.getElementById('jumlahUnit').value) || 1;
+
+      if (tipeSewa === 'hari') {
+        const valMulai = document.getElementById('tglMulai')?.value;
+        const valSelesai = document.getElementById('tglSelesai')?.value;
+
+        if (!valMulai || !valSelesai) {
+          document.getElementById('labelTotal').innerText = "Rp 0";
+          document.getElementById('labelDurasi').innerText = "0 Hari";
+          return;
+        }
+
+        const tglMulai = new Date(valMulai + "T00:00:00");
+        const tglSelesai = new Date(valSelesai + "T00:00:00");
+
+        if (tglSelesai >= tglMulai) {
+          const diffMs = Math.abs(tglSelesai - tglMulai);
+          const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+          const total = diffDays * hargaHari * jumlahUnit;
+
+          document.getElementById('labelDurasi').innerText = `${diffDays} Hari (${jumlahUnit} Unit)`;
+          document.getElementById('labelTotal').innerText = "Rp " + total.toLocaleString('id-ID');
+        } else {
+          document.getElementById('labelTotal').innerText = "Rp 0";
+          document.getElementById('labelDurasi').innerText = "Tanggal tidak valid";
+        }
+      } else {
+        const tglSewa = document.getElementById('tglSewaJam')?.value;
+        const jamMulai = document.getElementById('jamMulai')?.value;
+        const durasiJam = parseInt(document.getElementById('durasiJam')?.value) || 0;
+
+        if (!tglSewa || !jamMulai || durasiJam <= 0) {
+          document.getElementById('labelTotal').innerText = "Rp 0";
+          document.getElementById('labelDurasi').innerText = "0 Jam";
+          return;
+        }
+
+        const total = durasiJam * hargaJam * jumlahUnit;
+        const dateParts = tglSewa.split('-');
+        const tglFormatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+
+        document.getElementById('labelDurasi').innerText = `${durasiJam} Jam (${tglFormatted} @ ${jamMulai})`;
+        document.getElementById('labelTotal').innerText = "Rp " + total.toLocaleString('id-ID');
+      }
+    }
+
+    function readFileAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        if (!file) { resolve(""); return; }
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    document.getElementById('bookingForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const btnSubmit = document.getElementById('btnSubmit');
+      const btnText = document.getElementById('btnText');
+      const btnSpinner = document.getElementById('btnSpinner');
+      const alertBox = document.getElementById('alertBox');
+      
+      const nama = document.getElementById('nama').value;
+      const whatsapp = document.getElementById('whatsapp').value;
+      const sepeda = document.getElementById('sepeda').value;
+      const tipeSewa = document.querySelector('input[name="tipeSewa"]:checked').value;
+      const metodeBayar = document.querySelector('input[name="metodeBayar"]:checked').value;
+      const jumlahUnit = document.getElementById('jumlahUnit').value;
+      const totalBiaya = document.getElementById('labelTotal').innerText;
+
+      btnSubmit.disabled = true;
+      btnText.innerText = "Memproses...";
+      btnSpinner.classList.remove('hidden');
+      alertBox.classList.add('hidden');
+
+      let tglMulaiVal = "";
+      let tglSelesaiVal = "";
+      let durasiTambahan = 0;
+
+      if (tipeSewa === 'hari') {
+        tglMulaiVal = document.getElementById('tglMulai').value;
+        tglSelesaiVal = document.getElementById('tglSelesai').value;
+      } else {
+        const tgl = document.getElementById('tglSewaJam').value;
+        const jam = document.getElementById('jamMulai').value;
+        durasiTambahan = parseInt(document.getElementById('durasiJam').value) || 1;
+
+        const startDate = new Date(`${tgl}T${jam}:00`);
+        const endDate = new Date(startDate.getTime() + (durasiTambahan * 60 * 60 * 1000));
+
+        tglMulaiVal = startDate.toISOString();
+        tglSelesaiVal = endDate.toISOString();
+      }
+
+      const fileInput = document.getElementById('buktiBayar');
+      let fileBase64 = "";
+      if (metodeBayar === 'Transfer Bank' && fileInput.files.length > 0) {
+        try {
+          fileBase64 = await readFileAsBase64(fileInput.files[0]);
+        } catch (error) {
+          console.error("Gagal membaca file bukti bayar", error);
+        }
+      }
+
+      const payload = {
+        nama: nama,
+        whatsapp: whatsapp,
+        sepeda: sepeda,
+        tipeSewa: tipeSewa,
+        tglMulai: tglMulaiVal,
+        tglSelesai: tglSelesaiVal,
+        durasiJam: durasiTambahan,
+        jumlahUnit: jumlahUnit,
+        metodeBayar: metodeBayar,
+        buktiBayar: fileBase64
+      };
+
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(response => {
+        btnSubmit.disabled = false;
+        btnText.innerText = "Pesan sekarang";
+        btnSpinner.classList.add('hidden');
+
+        if (response.success) {
+          let pesanWA = `*HALO ADMIN SEPEDAGUYS, SAYA INGIN KONFIRMASI SEWA SEPEDA*\n\n`;
+          pesanWA += `👤 *Nama:* ${nama}\n`;
+          pesanWA += `📱 *WhatsApp:* ${whatsapp}\n`;
+          pesanWA += `🚲 *Sepeda:* ${sepeda} (${jumlahUnit} Unit)\n`;
+          pesanWA += `💳 *Metode Pembayaran:* ${metodeBayar}\n`;
+          pesanWA += `💰 *Total Biaya:* ${totalBiaya}\n\n`;
+
+          if (metodeBayar === 'Transfer Bank') {
+            pesanWA += `_Saya telah melampirkan/akan menyertakan bukti transfer di pesan ini._`;
+          } else {
+            pesanWA += `_Saya akan melakukan pembayaran tunai di tempat._`;
+          }
+
+          const urlWA = `https://wa.me/${NO_ADMIN_WA}?text=${encodeURIComponent(pesanWA)}`;
+          alert("Pemesanan berhasil disimpan! Anda akan diarahkan ke WhatsApp SEPEDAGUYS untuk konfirmasi.");
+          window.open(urlWA, '_blank');
+
+          document.getElementById('bookingForm').reset();
+          toggleTipeSewa();
+          togglePembayaran();
+          loadStatusSepeda();
+        } else {
+          alertBox.classList.remove('hidden');
+          alertBox.className = "mx-6 mb-6 p-4 rounded-xl text-sm font-medium bg-rose-50 text-rose-800 border border-rose-200";
+          alertBox.innerHTML = `<strong>Pemesanan Gagal!</strong><br>${response.message}`;
+        }
+      })
+      .catch(err => {
+        btnSubmit.disabled = false;
+        btnText.innerText = "Pesan sekarang";
+        btnSpinner.classList.add('hidden');
+
+        alertBox.classList.remove('hidden');
+        alertBox.className = "mx-6 mb-6 p-4 rounded-xl text-sm font-medium bg-rose-50 text-rose-800 border border-rose-200";
+        alertBox.innerHTML = `<strong>Terjadi Kesalahan Network!</strong><br>Pastikan koneksi internet stabil.`;
+      });
+    });
+
+    async function loadAdminData() {
+      if (!isAdminLoggedIn) return;
+
+      const tbodyJadwal = document.getElementById('tableJadwalBody');
+      const tbodyHistory = document.getElementById('tableHistoryBody');
+      const containerPenyewa = document.getElementById('containerPenyewaAktif');
+
+      tbodyJadwal.innerHTML = `<tr><td colspan="10" class="text-center py-8 text-slate-400">Memuat data...</td></tr>`;
+      tbodyHistory.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">Memuat riwayat...</td></tr>`;
+      containerPenyewa.innerHTML = `<div class="col-span-full text-center py-8 text-slate-400 text-sm">Memuat data penyewa...</div>`;
+
+      try {
+        const res = await fetch(`${SCRIPT_URL}?action=adminData`);
+        const data = await res.json();
+        renderDashboardAndTables(data);
+      } catch (err) {
+        tbodyJadwal.innerHTML = `<tr><td colspan="10" class="text-center py-8 text-rose-500">Gagal mengambil data dari Google Sheets.</td></tr>`;
+        tbodyHistory.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-rose-500">Gagal mengambil data riwayat.</td></tr>`;
+        containerPenyewa.innerHTML = `<div class="col-span-full text-center py-8 text-rose-500 text-sm">Terjadi kesalahan koneksi.</div>`;
+      }
+    }
+
+    function renderDashboardAndTables(data) {
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+
+      let tersewaHariIniUnit = 0;
+      let totalPemesananHariIniCount = 0;
+      let pendapatanHariIni = 0;
+      let pendapatanMingguIni = 0;
+      let pendapatanBulanIni = 0;
+      let transaksiSuksesHariIniCount = 0;
+
+      let htmlJadwal = '';
+      let htmlHistory = '';
+      let penyewaAktifHariIni = [];
+
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(now.getDate() - 7);
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const reversedData = [...data].reverse();
+
+      reversedData.forEach(item => {
+        const tglMulai = new Date(item.tglMulai);
+        const tglSelesai = new Date(item.tglSelesai);
+        const tglPesan = item.tglPesan ? new Date(item.tglPesan) : tglMulai;
+        const biaya = Number(item.biaya) || 0;
+        const jumlah = Number(item.jumlah) || 1;
+
+        let durasiStr = "";
+        if (item.tipe === 'jam' || item.durasiJam) {
+          durasiStr = `${item.durasiJam || 1} Jam`;
+        } else {
+          const diffTime = Math.abs(tglSelesai - tglMulai);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+          durasiStr = `${diffDays} Hari`;
+        }
+
+        const isAktifHariIni = (now >= tglMulai && now <= tglSelesai && item.status === 'Sedang Disewa');
+
+        if (isAktifHariIni) {
+          tersewaHariIniUnit += jumlah;
+          penyewaAktifHariIni.push({
+            pemesan: item.pemesan,
+            sepeda: item.sepeda,
+            jumlah: jumlah,
+            tipe: item.tipe,
+            durasiStr: durasiStr,
+            whatsapp: item.whatsapp,
+            biaya: biaya,
+            tglMulai: tglMulai,
+            tglSelesai: tglSelesai
+          });
+        }
+
+        const tglPesanStr = tglPesan.toISOString().split('T')[0];
+        if (tglPesanStr === todayStr) {
+          totalPemesananHariIniCount++;
+        }
+
+        if (item.status === 'Sedang Disewa' || item.status === 'Selesai') {
+          if (tglPesanStr === todayStr) {
+            pendapatanHariIni += biaya;
+            transaksiSuksesHariIniCount++;
+          }
+          if (tglPesan >= oneWeekAgo) {
+            pendapatanMingguIni += biaya;
+          }
+          if (tglPesan >= startOfMonth) {
+            pendapatanBulanIni += biaya;
+          }
+        }
+
+        const formatMulai = tglMulai.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' });
+        const formatSelesai = tglSelesai.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' });
+
+        let badgeClass = 'bg-sky-100 text-sky-800';
+        if (item.status === 'Selesai') badgeClass = 'bg-emerald-100 text-emerald-800';
+        if (item.status === 'Dibatalkan') badgeClass = 'bg-rose-100 text-rose-800';
+
+        htmlJadwal += `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="p-3.5 font-bold text-slate-800">${item.pemesan}</td>
+            <td class="p-3.5 font-medium text-brand-teal-dark">${item.sepeda}</td>
+            <td class="p-3.5">${jumlah} Unit</td>
+            <td class="p-3.5 text-slate-600">${formatMulai}</td>
+            <td class="p-3.5 text-slate-600">${formatSelesai}</td>
+            <td class="p-3.5">
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-brand-teal/10 text-brand-teal-dark uppercase">${item.tipe}</span>
+              <span class="block text-[11px] text-slate-500 font-semibold mt-0.5">${durasiStr}</span>
+            </td>
+            <td class="p-3.5 font-mono text-xs">
+              <a href="https://wa.me/${item.whatsapp}" target="_blank" class="text-brand-rust hover:underline flex items-center gap-1 font-semibold">
+                📱 ${item.whatsapp}
+              </a>
+            </td>
+            <td class="p-3.5 font-bold text-slate-800">Rp ${biaya.toLocaleString('id-ID')}</td>
+            <td class="p-3.5">
+              <span class="px-2.5 py-1 rounded-full text-xs font-bold ${badgeClass}">${item.status}</span>
+            </td>
+            <td class="p-3.5">
+              <select onchange="updateStatus(${item.rowIndex}, this.value)" class="text-xs p-1.5 rounded-lg border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-brand-teal outline-none">
+                <option value="Sedang Disewa" ${item.status === 'Sedang Disewa' ? 'selected' : ''}>Sedang Disewa</option>
+                <option value="Selesai" ${item.status === 'Selesai' ? 'selected' : ''}>Selesai (Dikembalikan)</option>
+                <option value="Dibatalkan" ${item.status === 'Dibatalkan' ? 'selected' : ''}>Dibatalkan</option>
+              </select>
+            </td>
+          </tr>
+        `;
+
+        if (item.status === 'Selesai' || item.status === 'Dibatalkan') {
+          htmlHistory += `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="p-3.5 font-bold text-slate-800">${item.pemesan}</td>
+              <td class="p-3.5 font-medium text-brand-teal-dark">${item.sepeda}</td>
+              <td class="p-3.5">${jumlah} Unit</td>
+              <td class="p-3.5 text-slate-600 text-xs">${formatMulai} s.d ${formatSelesai}</td>
+              <td class="p-3.5">
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 uppercase">${item.tipe}</span>
+              </td>
+              <td class="p-3.5 font-mono text-xs">
+                <a href="https://wa.me/${item.whatsapp}" target="_blank" class="text-slate-600 hover:text-brand-rust">
+                  ${item.whatsapp}
+                </a>
+              </td>
+              <td class="p-3.5 font-bold text-slate-800">Rp ${biaya.toLocaleString('id-ID')}</td>
+              <td class="p-3.5">
+                <span class="px-2.5 py-1 rounded-full text-xs font-bold ${badgeClass}">${item.status}</span>
+              </td>
+            </tr>
+          `;
+        }
+      });
+
+      const containerPenyewa = document.getElementById('containerPenyewaAktif');
+      document.getElementById('countPenyewaAktif').innerText = `${penyewaAktifHariIni.length} Orang`;
+
+      if (penyewaAktifHariIni.length === 0) {
+        containerPenyewa.innerHTML = `
+          <div class="col-span-full text-center py-8 text-slate-400 text-sm bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            🚲 Tidak ada penyewa aktif saat ini.
+          </div>
+        `;
+      } else {
+        containerPenyewa.innerHTML = '';
+        penyewaAktifHariIni.forEach(p => {
+          const card = document.createElement('div');
+          card.className = "bg-brand-cream/60 p-4 rounded-xl border border-brand-teal/20 space-y-3 relative overflow-hidden";
+          card.innerHTML = `
+            <div class="flex items-start justify-between">
+              <div>
+                <h3 class="font-extrabold text-brand-teal-dark text-base">${p.pemesan}</h3>
+                <p class="text-xs text-slate-500 font-medium">${p.sepeda} (${p.jumlah} Unit)</p>
+              </div>
+              <span class="px-2.5 py-1 bg-brand-rust text-white text-[11px] font-bold rounded-full shadow-sm">
+                ${p.durasiStr}
+              </span>
+            </div>
+
+            <div class="text-xs bg-white p-2.5 rounded-lg border border-brand-gold/40 space-y-1">
+              <div class="flex justify-between text-slate-600">
+                <span>Tipe Sewa:</span>
+                <strong class="uppercase text-brand-teal-dark">${p.tipe}</strong>
+              </div>
+              <div class="flex justify-between text-slate-600">
+                <span>Total Biaya:</span>
+                <strong class="text-brand-rust">Rp ${p.biaya.toLocaleString('id-ID')}</strong>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-1">
+              <span class="text-[11px] text-slate-500">Mulai: ${p.tglMulai.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})} WITA</span>
+              <a href="https://wa.me/${p.whatsapp}" target="_blank" class="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1 shadow-sm">
+                Hubungi WA
+              </a>
+            </div>
+          `;
+          containerPenyewa.appendChild(card);
+        });
+      }
+
+      document.getElementById('tableJadwalBody').innerHTML = htmlJadwal || `<tr><td colspan="10" class="text-center py-8 text-slate-400">Belum ada transaksi.</td></tr>`;
+      document.getElementById('tableHistoryBody').innerHTML = htmlHistory || `<tr><td colspan="8" class="text-center py-8 text-slate-400">Belum ada riwayat selesai/batal.</td></tr>`;
+
+      document.getElementById('statPendapatanHariIni').innerText = `Rp ${pendapatanHariIni.toLocaleString('id-ID')}`;
+      document.getElementById('subStatHariIni').innerText = `${transaksiSuksesHariIniCount} Transaksi Selesai/Aktif`;
+      document.getElementById('statPendapatanMingguIni').innerText = `Rp ${pendapatanMingguIni.toLocaleString('id-ID')}`;
+      document.getElementById('statPendapatanBulanIni').innerText = `Rp ${pendapatanBulanIni.toLocaleString('id-ID')}`;
+      document.getElementById('statTersewaHariIni').innerText = `${tersewaHariIniUnit} Unit`;
+      document.getElementById('statTotalTransaksi').innerText = `${totalPemesananHariIniCount} Pemesanan Masuk Hari Ini`;
+    }
+
+    async function updateStatus(rowIndex, newStatus) {
+      if (!confirm(`Ubah status pemesanan ini menjadi "${newStatus}"?`)) {
+        loadAdminData();
+        return;
+      }
+
+      try {
+        const response = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: "updateStatus",
+            rowIndex: rowIndex,
+            status: newStatus
+          })
+        });
+
+        const res = await response.json();
+        if (res.success) {
+          alert("Status berhasil diperbarui!");
+          loadAdminData();
+        } else {
+          alert("Gagal update status: " + res.message);
+        }
+      } catch (err) {
+        alert("Terjadi kesalahan koneksi saat memperbarui status.");
+      }
+    }
+  </script>
+</body>
+</html>
